@@ -26,6 +26,8 @@ bool IsAtSpeed=false;
 
 void setup()
 {
+  pinMode(13, OUTPUT)
+  
   Serial.begin(9600);
   Serial1.begin(9600);
 }
@@ -35,6 +37,15 @@ void loop()
   while (Serial1.available()) {
     parser.encode((char)Serial1.read());
   }
+
+  if(doorlatched) {    // check that door is latched
+    digitalWrite(13, HIGH);
+  }
+
+  else if(!doorlatched) {
+    digitalWrite(13, LOW);
+  }
+  
 }
 
 /**************************************************************************************
