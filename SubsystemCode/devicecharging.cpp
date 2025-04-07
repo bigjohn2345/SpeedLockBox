@@ -1,7 +1,8 @@
+bool devicecharging=FALSE;
+
 void setup() {
   
   pinMode(13, OUTPUT);
-  bool devicecharging=FALSE;
 
 }
 
