@@ -1,19 +1,5 @@
-/*
- * This example demonstrates how to use the 107-Arduino-NMEA library
- * to parse the incoming NMEA messages and make use of the extracted
- * information.
- *
- * Hardware:
- *   - Arduino MKR Family Board, e.g. MKR VIDOR 4000
- *   - Adafruit Mini GPS PA1010D Module
- *
- * Electrical Connection:
- *   - GPS Module VIN <->      VCC MKR VIDOR 4000
- *   - GPS Module GND <->      GND MKR VIDOR 4000
- *   - GPS Module TXO <-> (13) RX  MKR VIDOR 4000
- *   - GPS Module RXI <-> (14) TX  MKR VIDOR 4000
- */
-
+//--Ben Barrett 2025--//
+//--GPS Subsystem Code: Sets bool "IsAtSpeed" true when above x mph speed--//
 /**************************************************************************************
  * INCLUDE
  **************************************************************************************/
@@ -32,6 +18,7 @@ void onGgaUpdate(nmea::GgaData const);
  **************************************************************************************/
 
 ArduinoNmeaParser parser(onRmcUpdate, onGgaUpdate);
+bool IsAtSpeed=false;
 
 /**************************************************************************************
  * SETUP/LOOP
@@ -59,7 +46,16 @@ void onRmcUpdate(nmea::RmcData const rmc)
   if (rmc.is_valid)
   {
     Serial.print(" Speed: ");
-    Serial.print(rmc.speed);
+    Serial.print(rmc.speed*2.23694);
+
+    if (((rmc.speed)*2.23694)>15) {
+      IsAtSpeed=true;
+      Serial.print(" AtSpeed");
+    } else {IsAtSpeed=false;}
+
+  } else {
+    Serial.print("No Fix");
+    IsAtSpeed=false;
   }
 
   Serial.println();
