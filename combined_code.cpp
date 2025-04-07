@@ -19,6 +19,7 @@ void onGgaUpdate(nmea::GgaData const);
 
 ArduinoNmeaParser parser(onRmcUpdate, onGgaUpdate);
 bool IsAtSpeed=false;
+bool devicecharging=FALSE;
 
 /**************************************************************************************
  * SETUP/LOOP
@@ -40,10 +41,12 @@ void loop()
 
   if(doorlatched) {    // check that door is latched
     digitalWrite(13, HIGH);
+    devicecharging = TRUE;
   }
 
   else if(!doorlatched) {
     digitalWrite(13, LOW);
+    devicecharging = FALSE;
   }
   
 }
