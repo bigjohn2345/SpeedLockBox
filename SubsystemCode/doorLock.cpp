@@ -4,7 +4,7 @@ bool phoneDetected;
 bool IsAtSpeed;
 
 void setup() {
-myservo.attach(9);
+myservo.attach(7);
 }
 
 void loop() {
