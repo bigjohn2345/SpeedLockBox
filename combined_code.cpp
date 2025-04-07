@@ -33,9 +33,8 @@ bool IsAtSpeed=false;
 bool devicecharging=FALSE;
 
 Servo myservo;
-bool doorLocked;
-bool phoneDetected;
-bool motionDetected;
+
+bool doorLocked = false;
 
 bool phoneDetected = false;
 
