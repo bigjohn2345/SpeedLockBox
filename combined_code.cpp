@@ -10,8 +10,8 @@
 
 //Definitions
 
-#define SS_PIN 10
-#define RST_PIN 5
+#define SS_PIN 9
+#define RST_PIN 8
 
 /**************************************************************************************
  * FUNCTION DECLARATION
