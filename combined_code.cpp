@@ -5,6 +5,13 @@
  **************************************************************************************/
 
 #include <ArduinoNmeaParser.h>
+#include <SPI.h>
+#include <MFRC522.h>
+
+//Definitions
+
+#define SS_PIN 10
+#define RST_PIN 5
 
 /**************************************************************************************
  * FUNCTION DECLARATION
@@ -18,8 +25,19 @@ void onGgaUpdate(nmea::GgaData const);
  **************************************************************************************/
 
 ArduinoNmeaParser parser(onRmcUpdate, onGgaUpdate);
+
+MFRC522 rfid(SS_PIN, RST_PIN);
+
 bool IsAtSpeed=false;
+
 bool devicecharging=FALSE;
+
+Servo myservo;
+bool doorLocked;
+bool phoneDetected;
+bool motionDetected;
+
+bool phoneDetected = false;
 
 /**************************************************************************************
  * SETUP/LOOP
@@ -27,24 +45,55 @@ bool devicecharging=FALSE;
 
 void setup()
 {
+  myservo.attach(9);
+  
   pinMode(13, OUTPUT)
   
   Serial.begin(9600);
   Serial1.begin(9600);
+  SPI.begin()
+  rfid.PCD_Init(); 
+  Serial.println("RFID Subsystem Initialized");
 }
 
 void loop()
 {
+  phoneDetected = false; // Reset before checking
+  
   while (Serial1.available()) {
     parser.encode((char)Serial1.read());
   }
 
-  if(doorlatched) {    // check that door is latched
+  if (rfid.PICC_IsNewCardPresent()) {
+    if (rfid.PICC_ReadCardSerial()) {
+      phoneDetected = true;
+      Serial.print("Phone Detected: ");
+
+      for (int i = 0; i < rfid.uid.size; i++) {
+        Serial.print(rfid.uid.uidByte[i] < 0x10 ? " 0" : " ");
+        Serial.print(rfid.uid.uidByte[i], HEX);
+      }
+
+      Serial.println();
+      rfid.PICC_HaltA();
+      rfid.PCD_StopCrypto1();
+    }
+  }
+  
+  if (phoneDetected && IsAtSpeed) {
+    myservo.write(100);
+    doorLocked = true;
+  } else {
+    myservo.write(180);
+    doorLocked = false;
+  }
+
+  if(doorLocked) {    // check that door is latched
     digitalWrite(13, HIGH);
     devicecharging = TRUE;
   }
 
-  else if(!doorlatched) {
+  else if(!doorLocked) {
     digitalWrite(13, LOW);
     devicecharging = FALSE;
   }
