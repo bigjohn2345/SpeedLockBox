@@ -33,3 +33,45 @@ void loop() {
     }
   }
 }
+//other test code
+
+#include <SPI.h>
+#include <MFRC522.h>
+
+#define SS_PIN 10
+#define RST_PIN 5
+
+MFRC522 rfid(SS_PIN, RST_PIN);
+bool phoneDetected = false;
+
+void setup() {
+  Serial.begin(9600);
+  SPI.begin(); 
+  rfid.PCD_Init(); 
+  Serial.println("Tap RFID/NFC Tag on reader");
+}
+
+void loop() {
+  phoneDetected = false;
+
+  if (rfid.PICC_IsNewCardPresent() && rfid.PICC_ReadCardSerial()) {
+    phoneDetected = true;
+    Serial.print("Phone Detected: ");
+
+    for (int i = 0; i < rfid.uid.size; i++) {
+      Serial.print(rfid.uid.uidByte[i] < 0x10 ? "0" : "");
+      Serial.print(rfid.uid.uidByte[i], HEX);
+      if (i < rfid.uid.size - 1) Serial.print(":");
+    }
+
+    Serial.println();
+
+    rfid.PICC_HaltA();        // Stop reading this card
+    rfid.PCD_StopCrypto1();   // Stop encryption on PCD side
+
+    // Wait until the card is removed before continuing
+    while (rfid.PICC_IsNewCardPresent() || rfid.PICC_ReadCardSerial()) {
+      delay(50);
+    }
+  }
+}
