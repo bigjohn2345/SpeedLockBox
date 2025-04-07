@@ -52,26 +52,26 @@ void setup() {
 }
 
 void loop() {
-  phoneDetected = false;
-
   if (rfid.PICC_IsNewCardPresent() && rfid.PICC_ReadCardSerial()) {
-    phoneDetected = true;
-    Serial.print("Phone Detected: ");
-
-    for (int i = 0; i < rfid.uid.size; i++) {
-      Serial.print(rfid.uid.uidByte[i] < 0x10 ? "0" : "");
-      Serial.print(rfid.uid.uidByte[i], HEX);
-      if (i < rfid.uid.size - 1) Serial.print(":");
+    if (!phoneDetected) {
+      phoneDetected = true;
+      Serial.print("Phone Detected: ");
+      for (int i = 0; i < rfid.uid.size; i++) {
+        Serial.print(rfid.uid.uidByte[i] < 0x10 ? "0" : "");
+        Serial.print(rfid.uid.uidByte[i], HEX);
+        if (i < rfid.uid.size - 1) Serial.print(":");
+      }
+      Serial.println();
     }
 
-    Serial.println();
-
-    rfid.PICC_HaltA();        // Stop reading this card
-    rfid.PCD_StopCrypto1();   // Stop encryption on PCD side
-
-    // Wait until the card is removed before continuing
-    while (rfid.PICC_IsNewCardPresent() || rfid.PICC_ReadCardSerial()) {
-      delay(50);
-    }
+    rfid.PICC_HaltA();
+    rfid.PCD_StopCrypto1();
+  } 
+  else if (phoneDetected) {
+    // Card has been removed
+    phoneDetected = false;
+    Serial.println("Phone Removed.");
   }
+
+  delay(100); // Short delay for stability
 }
