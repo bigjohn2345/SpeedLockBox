@@ -1,14 +1,14 @@
 Servo myservo;
 bool doorLocked;
 bool phoneDetected;
-bool motionDetected;
+bool IsAtSpeed;
 
 void setup() {
 myservo.attach(9);
 }
 
 void loop() {
-if( phoneDetected && motionDetected){
+if( phoneDetected && IsAtSpeed){
   myservo.write(100);
   doorLocked = true;
 }
