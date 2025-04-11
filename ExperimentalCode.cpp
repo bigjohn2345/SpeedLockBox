@@ -12,8 +12,8 @@
 
 //Definitions
 
-#define SS_PIN 9
-#define RST_PIN 5
+#define SS_PIN 10
+#define RST_PIN 9
 
 /**************************************************************************************
  * FUNCTION DECLARATION
@@ -50,7 +50,7 @@ void setup()
 {
   myservo.attach(7);
   
-  pinMode(13, OUTPUT);
+  pinMode(8, OUTPUT);
   
   Serial.begin(9600);
   Serial1.begin(9600);
