@@ -61,7 +61,7 @@ void setup()
 
 void loop()
 {
-  phoneDetected = false; // Reset before checking
+  //phoneDetected = false; // Reset before checking
   
   while (Serial1.available()) {
     parser.encode((char)Serial1.read());
@@ -78,26 +78,32 @@ void loop()
       }
 
       Serial.println();
-      rfid.PICC_HaltA();
+      //rfid.PICC_HaltA();
       rfid.PCD_StopCrypto1();
     }
   }
+  else {
+
+    delay(250);
+    phoneDetected = false;
+
+  }
   
   if (phoneDetected && IsAtSpeed) {
-    myservo.write(100);
+    myservo.write(0);
     doorLocked = true;
   } else {
-    myservo.write(180);
+    myservo.write(90);
     doorLocked = false;
   }
 
   if(doorLocked) {    // check that door is latched
-    digitalWrite(13, HIGH);
+    digitalWrite(8, HIGH);
     devicecharging = true;
   }
 
   else if(!doorLocked) {
-    digitalWrite(13, LOW);
+    digitalWrite(8, LOW);
     devicecharging = false;
   }
   
