@@ -16,7 +16,7 @@
 
 #define SS_PIN 10
 #define RST_PIN 9
-#define BUZZER_PIN 6
+#define BUZZER_PIN 4
 
 /**************************************************************************************
  * FUNCTION DECLARATION
