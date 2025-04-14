@@ -92,13 +92,18 @@ void loop()
     phoneDetected = false;
 
   }
-  
-  if (phoneDetected && IsAtSpeed) {
-    myservo.write(0);
-    doorLocked = true;
-  } else {
-    myservo.write(90);
-    doorLocked = false;
+
+
+  if(!(phoneDetected == phoneDetectedprevState)) {
+    
+    if (phoneDetected && IsAtSpeed) {
+      myservo.write(0);
+      doorLocked = true;
+    } else {
+      myservo.write(90);
+      doorLocked = false;
+    }
+
   }
 
   if(!(doorLocked == doorLockedprevState)) {
@@ -123,6 +128,7 @@ void loop()
   }
 
   doorLockedprevState = doorLocked;
+  phoneDetectedprevState = phoneDetected;
 
 
 }
