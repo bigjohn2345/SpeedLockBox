@@ -38,7 +38,11 @@ Servo myservo;
 
 bool doorLocked = false;
 
+bool doorLockedprevState = false;
+
 bool phoneDetected = false;
+
+bool phoneDetectedprevState = false;
 
 unsigned long TestDelay=0;
 
@@ -97,14 +101,18 @@ void loop()
     doorLocked = false;
   }
 
-  if(doorLocked) {    // check that door is latched
-    digitalWrite(8, HIGH);
-    devicecharging = true;
-  }
+  if(!(doorLocked == doorLockedprevState)) {
 
-  else if(!doorLocked) {
-    digitalWrite(8, LOW);
-    devicecharging = false;
+    if(doorLocked) {    // check that door is latched
+      digitalWrite(8, HIGH);
+      devicecharging = true;
+    }
+
+    else if(!doorLocked) {
+      digitalWrite(8, LOW);
+      devicecharging = false;
+    }
+
   }
   
   //--TEST CODE FOR IsAtSpeed
@@ -113,6 +121,8 @@ void loop()
     Serial.println("GPS test code inc");
     IsAtSpeed=!IsAtSpeed;
   }
+
+  doorLockedprevState = doorLocked;
 
 
 }
