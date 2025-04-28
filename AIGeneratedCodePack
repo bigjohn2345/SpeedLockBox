@@ -1,0 +1,197 @@
+#include <ArduinoNmeaParser.h>
+#include <SPI.h>
+#include <MFRC522.h>
+#include <Servo.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+
+// Pin Definitions
+#define SS_PIN 10
+#define RST_PIN 9
+#define BUZZER_PIN 4
+#define CHARGE_PIN 6
+#define SERVO_PIN 7
+
+// LCD Setup
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// System States
+typedef enum {
+  STATE_SECURED,
+  STATE_NOT_SECURED,
+  STATE_ALERT
+} SystemState;
+
+// Function Declarations
+void onRmcUpdate(nmea::RmcData const);
+void onGgaUpdate(nmea::GgaData const);
+void handleSecuredState();
+void handleNotSecuredState();
+void handleAlertState();
+
+// Global Variables
+ArduinoNmeaParser parser(onRmcUpdate, onGgaUpdate);
+MFRC522 rfid(SS_PIN, RST_PIN);
+Servo myservo;
+bool IsAtSpeed = false;
+bool phoneDetected = false;
+bool deviceCharging = false;
+bool doorLocked = false;
+SystemState currentState = STATE_NOT_SECURED;
+unsigned long lastPhoneDetect = 0;
+unsigned long TestDelay = 0;
+const unsigned long PHONE_TIMEOUT = 5000; // 5 seconds
+const unsigned long TEST_INTERVAL = 10000; // 10 seconds
+const float SPEED_THRESHOLD = 15.0; // mph
+
+void setup() {
+  myservo.attach(SERVO_PIN);
+  myservo.write(90); // Start unlocked
+  pinMode(CHARGE_PIN, OUTPUT);
+  digitalWrite(CHARGE_PIN, LOW);
+  pinMode(BUZZER_PIN, OUTPUT);
+  noTone(BUZZER_PIN);
+
+  Serial.begin(9600);
+  Serial1.begin(9600);
+  SPI.begin();
+  rfid.PCD_Init();
+  Serial.println("RFID Subsystem Initialized");
+
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("System Ready");
+  delay(1000);
+  lcd.clear();
+}
+
+void loop() {
+  // Read GPS data
+  while (Serial1.available()) {
+    parser.encode((char)Serial1.read());
+  }
+
+  // Test code to toggle IsAtSpeed every 10 seconds
+  if ((millis() - TestDelay) >= TEST_INTERVAL) {
+    TestDelay = millis();
+    IsAtSpeed = !IsAtSpeed;
+    if (IsAtSpeed) {
+      Serial.println("GPS test code at speed");
+    } else {
+      Serial.println("GPS test code not at speed");
+    }
+  }
+
+  // Reset phone detection before checking
+  phoneDetected = false;
+  if (IsAtSpeed) {
+    if (rfid.PICC_IsNewCardPresent() && rfid.PICC_ReadCardSerial()) {
+      phoneDetected = true;
+      lastPhoneDetect = millis();
+      Serial.print("Phone Detected: ");
+      for (int i = 0; i < rfid.uid.size; i++) {
+        Serial.print(rfid.uid.uidByte[i] < 0x10 ? " 0" : " ");
+        Serial.print(rfid.uid.uidByte[i], HEX);
+      }
+      Serial.println();
+      rfid.PICC_HaltA();
+      rfid.PCD_StopCrypto1();
+    }
+  }
+
+  // Timeout phone detection
+  if (phoneDetected && (millis() - lastPhoneDetect > PHONE_TIMEOUT)) {
+    phoneDetected = false;
+  }
+
+  // Determine next state
+  SystemState nextState = currentState;
+  if (phoneDetected && IsAtSpeed) {
+    nextState = STATE_SECURED;
+  } else if (!phoneDetected && IsAtSpeed) {
+    nextState = STATE_ALERT;
+  } else {
+    nextState = STATE_NOT_SECURED;
+  }
+
+  // Update hardware and state
+  if (nextState != currentState) {
+    currentState = nextState;
+    if (currentState == STATE_SECURED) {
+      myservo.write(0);
+      doorLocked = true;
+      digitalWrite(CHARGE_PIN, HIGH);
+      deviceCharging = true;
+      handleSecuredState();
+    } else if (currentState == STATE_ALERT) {
+      myservo.write(0);
+      doorLocked = true;
+      digitalWrite(CHARGE_PIN, LOW);
+      deviceCharging = false;
+      handleAlertState();
+    } else { // STATE_NOT_SECURED
+      myservo.write(90);
+      doorLocked = false;
+      digitalWrite(CHARGE_PIN, LOW);
+      deviceCharging = false;
+      handleNotSecuredState();
+    }
+  }
+
+  // Continuous buzzer in ALERT state
+  if (currentState == STATE_ALERT) {
+    tone(BUZZER_PIN, 1000);
+  } else {
+    noTone(BUZZER_PIN);
+  }
+}
+
+void onRmcUpdate(nmea::RmcData const rmc) {
+  if (rmc.is_valid) {
+    float speedMph = rmc.speed * 2.23694; // Convert knots to mph
+    Serial.print("Speed: ");
+    Serial.print(speedMph);
+    IsAtSpeed = (speedMph > SPEED_THRESHOLD);
+    if (IsAtSpeed) {
+      Serial.print(" AtSpeed");
+    }
+  } else {
+    Serial.print("No Fix");
+    IsAtSpeed = false;
+  }
+  Serial.println();
+}
+
+void onGgaUpdate(nmea::GgaData const gga) {
+  // Not used
+}
+
+void handleSecuredState() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Phone Secured");
+  tone(BUZZER_PIN, 1000, 200);
+  delay(300);
+  tone(BUZZER_PIN, 1500, 200);
+  delay(300);
+  tone(BUZZER_PIN, 2000, 200);
+  delay(300);
+  noTone(BUZZER_PIN);
+}
+
+void handleNotSecuredState() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Phone Not");
+  lcd.setCursor(0, 1);
+  lcd.print("Secured");
+}
+
+void handleAlertState() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Phone Missing!");
+  lcd.setCursor(0, 1);
+  lcd.print("Speed > 15 mph");
+}
