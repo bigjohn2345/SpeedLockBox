@@ -224,7 +224,7 @@ void handleNotSecuredState() {
   lcd.print("Phone Not");
   lcd.setCursor(0, 1);
   lcd.print("Secured");
-
+/*
   unsigned long now = millis();
   static bool buzzerOn = false;
 
@@ -240,7 +240,7 @@ void handleNotSecuredState() {
     }
   }
 
-/*  static int freq = 3000;
+*/  static int freq = 3000;
   static int direction = 1;
 
   unsigned long now = millis();
@@ -253,7 +253,7 @@ void handleNotSecuredState() {
     if (freq >= 3000) direction = -1;
     if (freq <= 1000) direction = 1;
   }
-  */
+  
 }
 
 void handleIdleState() {
