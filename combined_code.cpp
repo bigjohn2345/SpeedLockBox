@@ -26,13 +26,15 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 typedef enum {
   STATE_SECURED,
-  STATE_NOT_SECURED
+  STATE_NOT_SECURED,
+  STATE_IDLE
 } SystemState;
 
 void onRmcUpdate(nmea::RmcData const);
 void onGgaUpdate(nmea::GgaData const);
 void handleSecuredState();
 void handleNotSecuredState();
+void handleIdleState();
 
 /**************************************************************************************
  * GLOBAL VARIABLES
@@ -57,6 +59,10 @@ bool phoneDetected = false;
 bool phoneDetectedprevState = false;
 
 unsigned long TestDelay=0;
+
+bool noise=true;
+
+unsigned long lastUpdate=0;
 
 SystemState currentState = STATE_NOT_SECURED;
 
@@ -87,8 +93,10 @@ void setup()
 
 void loop()
 {
-  //phoneDetected = false; // Reset before checking
   
+  int speed = map(analogRead(A0), 0, 1023, 0 , 80);
+
+
   while (Serial1.available()) {
     parser.encode((char)Serial1.read());
   }
@@ -104,7 +112,7 @@ void loop()
         }
 
         Serial.println();
-        rfid.PICC_HaltA();
+        //rfid.PICC_HaltA();
         rfid.PCD_StopCrypto1();
 
         phoneDetected = true;
@@ -123,7 +131,7 @@ void loop()
     digitalWrite(6, HIGH);
     devicecharging = true;
   }
-  else if(!phoneDetected || !IsAtSpeed) {
+  else if(!IsAtSpeed) {
     myservo.write(90);
     doorLocked = false;
     digitalWrite(6, LOW);
@@ -131,23 +139,36 @@ void loop()
   }
   
   //--TEST CODE FOR IsAtSpeed
-  if ((millis()-TestDelay) >= 10000) {
-    TestDelay=millis();
-    IsAtSpeed=!IsAtSpeed;
-    if(IsAtSpeed) {
-      Serial.println("GPS test code at speed");
-    }
-    else {
-      Serial.println("GPS test code not at speed");
-    }
+  //if ((millis()-TestDelay) >= 10000) {
+  //  TestDelay=millis();
+  //  IsAtSpeed=!IsAtSpeed;
+  //  if(IsAtSpeed) {
+  //    Serial.println("GPS test code at speed");
+  //  }
+  //  else {
+  //    Serial.println("GPS test code not at speed");
+  //  }
+  //}
+  if(speed >= 5) {
+    IsAtSpeed = true;
+    Serial.println(speed);
+  }
+  else {
+    IsAtSpeed = false;
+    Serial.println(speed);
   }
 
-  if (phoneDetected && IsAtSpeed && (currentState != STATE_SECURED)) {
+  if(!IsAtSpeed && (currentState != STATE_IDLE)) {
+    currentState = STATE_IDLE;
+    handleIdleState();
+  }
+
+  if (phoneDetected && (currentState != STATE_SECURED)) {
     currentState = STATE_SECURED;
     handleSecuredState();
   } 
 
-  else if ((!phoneDetected || !IsAtSpeed) && (currentState != STATE_NOT_SECURED)) {
+  else if ((!phoneDetected && IsAtSpeed) && (currentState != STATE_NOT_SECURED)) {
     currentState = STATE_NOT_SECURED;
     handleNotSecuredState();
   }
@@ -204,11 +225,27 @@ void handleNotSecuredState() {
   lcd.setCursor(0, 1);
   lcd.print("Secured");
 
-  static unsigned long lastUpdate = 0;
-  static int freq = 1000;
+  unsigned long now = millis();
+  static bool buzzerOn = false;
+
+  // Toggle buzzer every 500 ms
+  if (now - lastUpdate >= 500) {
+    lastUpdate = now;
+    if (buzzerOn) {
+      noTone(BUZZER_PIN);  // Turn off buzzer
+      buzzerOn = false;
+    } else {
+      tone(BUZZER_PIN, 3000);  // Turn on buzzer at 3000 Hz
+      buzzerOn = true;
+    }
+  }
+
+/*  static int freq = 3000;
   static int direction = 1;
 
   unsigned long now = millis();
+
+
   if (now - lastUpdate > 20) {
     lastUpdate = now;
     tone(BUZZER_PIN, freq);
@@ -216,4 +253,13 @@ void handleNotSecuredState() {
     if (freq >= 3000) direction = -1;
     if (freq <= 1000) direction = 1;
   }
+  */
 }
+
+void handleIdleState() {
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("Idle");
+  noTone(BUZZER_PIN);
+}
+
