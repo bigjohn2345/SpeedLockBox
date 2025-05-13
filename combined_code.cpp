@@ -2,7 +2,7 @@
 //--Team 21rd 2025--//
 //--GPS Subsystem Code: Sets bool "IsAtSpeed" true when above x mph speed--//
 /**************************************************************************************
- * INCLUDE
+ * INCLUDE LIBRARIES
  **************************************************************************************/
 
 #include <ArduinoNmeaParser.h>
@@ -22,9 +22,10 @@
  * FUNCTION DECLARATION
  **************************************************************************************/
 
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+LiquidCrystal_I2C lcd(0x27, 16, 2);  
 
-typedef enum {
+//States
+typedef enum {       
   STATE_SECURED,
   STATE_NOT_SECURED,
   STATE_IDLE
@@ -44,27 +45,27 @@ ArduinoNmeaParser parser(onRmcUpdate, onGgaUpdate);
 
 MFRC522 rfid(SS_PIN, RST_PIN);
 
-bool IsAtSpeed=false;
+bool IsAtSpeed=false;             //GPS SPEED
 
-bool devicecharging=false;
+bool devicecharging=false;        //DEVICE CHARGING
 
-Servo myservo;
+Servo myservo;                    //SERVO
 
-bool doorLocked = false;
+bool doorLocked = false;         //DOOR LOCK
 
-bool doorLockedprevState = false;
+bool doorLockedprevState = false;  //PREVIOUS STATE OF DOOR LOCK
 
-bool phoneDetected = false;
+bool phoneDetected = false;        //PHONE DETECTION
 
-bool phoneDetectedprevState = false;
+bool phoneDetectedprevState = false;  //PREVIOUS STATE OF PHONE DETECTION
 
 unsigned long TestDelay=0;
 
-bool noise=true;
+bool noise=true;                    //BUZZER
 
 unsigned long lastUpdate=0;
 
-SystemState currentState = STATE_NOT_SECURED;
+SystemState currentState = STATE_NOT_SECURED;   //CURRENT STATE
 
 /**************************************************************************************
  * SETUP/LOOP
@@ -72,7 +73,7 @@ SystemState currentState = STATE_NOT_SECURED;
 
 void setup()
 {
-  myservo.attach(7);
+  myservo.attach(7);         //attach servo motor to pin 7
   
   pinMode(6, OUTPUT);
   
@@ -97,12 +98,12 @@ void loop()
   int speed = map(analogRead(A0), 0, 1023, 0 , 80);
 
 
-  while (Serial1.available()) {
+  while (Serial1.available()) {                 //READ GPS SPEED
     parser.encode((char)Serial1.read());
   }
 
-  if(IsAtSpeed) {
-    if (rfid.PICC_IsNewCardPresent()) {
+  if(IsAtSpeed) {                              //AT SPEED LOOP
+    if (rfid.PICC_IsNewCardPresent()) {        //DETERMINE IF PHONE IS DETECTED
       if (rfid.PICC_ReadCardSerial()) {
         Serial.print("Phone Detected: ");
 
@@ -125,13 +126,13 @@ void loop()
     }
   }
 
-  if (phoneDetected && IsAtSpeed) {
+  if (phoneDetected && IsAtSpeed) {         //LOCK THE DOOR
     myservo.write(0);
     doorLocked = true;
     digitalWrite(6, HIGH);
     devicecharging = true;
   }
-  else if(!IsAtSpeed) {
+  else if(!IsAtSpeed) {                    //DO NOT LOCK THE DOOR
     myservo.write(90);
     doorLocked = false;
     digitalWrite(6, LOW);
@@ -158,17 +159,17 @@ void loop()
     Serial.println(speed);
   }
 
-  if(!IsAtSpeed && (currentState != STATE_IDLE)) {
+  if(!IsAtSpeed && (currentState != STATE_IDLE)) {        //UPDATE CURRENT STATE TO IDLE
     currentState = STATE_IDLE;
     handleIdleState();
   }
 
-  if (phoneDetected && (currentState != STATE_SECURED)) {
+  if (phoneDetected && (currentState != STATE_SECURED)) {  //UPDATE CURRENT STATE TO SECURED
     currentState = STATE_SECURED;
     handleSecuredState();
   } 
 
-  else if ((!phoneDetected && IsAtSpeed) && (currentState != STATE_NOT_SECURED)) {
+  else if ((!phoneDetected && IsAtSpeed) && (currentState != STATE_NOT_SECURED)) {   //UPDATE CURRENT STATE TO NOT SECURED
     currentState = STATE_NOT_SECURED;
     handleNotSecuredState();
   }
@@ -179,6 +180,7 @@ void loop()
  * FUNCTION DEFINITION
  **************************************************************************************/
 
+// GPS Settings
 void onRmcUpdate(nmea::RmcData const rmc)
 {
   if (rmc.is_valid)
@@ -204,6 +206,7 @@ void onRmcUpdate(nmea::RmcData const rmc)
 void onGgaUpdate(nmea::GgaData const gga) {
 }
 
+//USER INTERFACE
 void handleSecuredState() {
   lcd.clear();
   lcd.setCursor(0, 0);
